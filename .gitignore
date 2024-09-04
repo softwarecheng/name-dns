@@ -2,7 +2,7 @@
 .DS_Store
 # .vscode
 *debug_bin*
-db/*
+db
 log
 # for conf
 *.env

@@ -6,23 +6,16 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/OLProtocol/ordx/indexer"
-	"github.com/OLProtocol/ordx/server/base"
-	"github.com/OLProtocol/ordx/server/bitcoind"
-	serverCommon "github.com/OLProtocol/ordx/server/define"
 
 	"github.com/OLProtocol/ordx/server/ordx"
-	"github.com/didip/tollbooth/v7/limiter"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/logger"
 	"github.com/gin-gonic/gin"
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/rs/zerolog"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 const (
@@ -40,31 +33,17 @@ const (
 	CONTENT_TYPE_JSON = "application/json"
 )
 
-type RateLimit struct {
-	limit    *limiter.Limiter
-	reqCount int
-}
-
 type Rpc struct {
-	basicService *base.Service
-	ordxService  *ordx.Service
-	btcdService  *bitcoind.Service
-
-	apiConf      *serverCommon.API
-	initApiConf  bool
-	apiConfMutex sync.Mutex
-	apiLimitMap  sync.Map
+	ordxService *ordx.Service
 }
 
 func NewRpc(baseIndexer *indexer.IndexerMgr, chain string) *Rpc {
 	return &Rpc{
-		basicService: base.NewService(baseIndexer),
-		ordxService:  ordx.NewService(baseIndexer),
-		btcdService:  bitcoind.NewService(),
+		ordxService: ordx.NewService(baseIndexer),
 	}
 }
 
-func (s *Rpc) Start(rpcUrl, swaggerHost, swaggerSchemes, rpcProxy, rpcLogFile string, apiConf any) error {
+func (s *Rpc) Start(rpcUrl, rpcLogFile string) error {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 	var writers []io.Writer
@@ -104,21 +83,6 @@ func (s *Rpc) Start(rpcUrl, swaggerHost, swaggerSchemes, rpcProxy, rpcLogFile st
 	config.OptionsResponseStatusCode = 200
 	r.Use(cors.New(config))
 
-	// doc
-	s.InitApiDoc(swaggerHost, swaggerSchemes, rpcProxy)
-	r.GET(rpcProxy+"/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
-	// api config
-	err := s.InitApiConf(apiConf)
-	if err != nil {
-		return err
-	}
-
-	err = s.applyApiConf(r, rpcProxy)
-	if err != nil {
-		return err
-	}
-
 	// common header
 	r.Use(func(c *gin.Context) {
 		c.Writer.Header().Set(VARY, "Origin")
@@ -145,9 +109,8 @@ func (s *Rpc) Start(rpcUrl, swaggerHost, swaggerSchemes, rpcProxy, rpcLogFile st
 	})
 
 	// router
-	s.basicService.InitRouter(r, rpcProxy)
-	s.ordxService.InitRouter(r, rpcProxy)
-	s.btcdService.InitRouter(r, rpcProxy)
+	s.ordxService.InitRouter(r)
+
 	parts := strings.Split(rpcUrl, ":")
 	if len(parts) < 2 {
 		rpcUrl += ":80"

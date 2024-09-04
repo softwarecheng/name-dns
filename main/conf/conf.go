@@ -102,9 +102,6 @@ func LoadConf(cfgPath string) (*Conf, error) {
 		PeriodFlushToDB: periodFlushToDB,
 		MaxIndexHeight:  maxIndexHeight,
 		RpcAddr:         rpcAddr,
-		RpcProxy:        rpcProxy,
 		RpcLogPath:      rpcLogPath,
-		SwaggerHost:     swaggerHost,
-		SwaggerSchemes:  swaggerSchemes,
 	}, nil
 }

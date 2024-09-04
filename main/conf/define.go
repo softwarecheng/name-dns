@@ -16,10 +16,7 @@ type Conf struct {
 	PeriodFlushToDB int
 	MaxIndexHeight  int64
 	RpcAddr         string
-	RpcProxy        string
 	RpcLogPath      string
-	SwaggerHost     string
-	SwaggerSchemes  string
 }
 
 type YamlConf struct {

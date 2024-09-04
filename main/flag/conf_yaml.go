@@ -63,23 +63,8 @@ func LoadYamlConf(cfgPath string) (*conf.YamlConf, error) {
 		rpcService.Addr = "0.0.0.0:80"
 	}
 
-	if rpcService.Proxy == "" {
-		rpcService.Proxy = "/"
-	}
-	if rpcService.Proxy[0] != '/' {
-		rpcService.Proxy = "/" + rpcService.Proxy
-	}
-
 	if rpcService.LogPath == "" {
 		rpcService.LogPath = "log"
-	}
-
-	if rpcService.Swagger.Host == "" {
-		rpcService.Swagger.Host = "127.0.0.1"
-	}
-
-	if len(rpcService.Swagger.Schemes) == 0 {
-		rpcService.Swagger.Schemes = []string{"http"}
 	}
 
 	ret.RPCService = rpcService
@@ -121,16 +106,7 @@ func NewDefaultYamlConf(chain string) (*conf.YamlConf, error) {
 			PeriodFlushToDB: 100,
 		},
 		RPCService: serverCommon.RPCService{
-			Addr:  "0.0.0.0:80",
-			Proxy: chain,
-			Swagger: serverCommon.Swagger{
-				Host:    "127.0.0.0",
-				Schemes: []string{"http"},
-			},
-			API: serverCommon.API{
-				APIKeyList:     []serverCommon.APIKeyList{},
-				NoLimitAPIList: []string{"/health"},
-			},
+			Addr: "0.0.0.0:80",
 		},
 	}
 

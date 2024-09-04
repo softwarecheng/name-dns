@@ -118,8 +118,8 @@ type AssetAbbrInfo struct {
 }
 
 type UtxoAbbrAssets struct {
-	Utxo   string             `json:"utxo"`
-	Assets []*AssetAbbrInfo   `json:"assets"`
+	Utxo   string           `json:"utxo"`
+	Assets []*AssetAbbrInfo `json:"assets"`
 }
 
 type Seed struct {
@@ -161,22 +161,17 @@ type OrdinalsName struct {
 }
 
 type NameRouting struct {
-	Holder           string  `json:"holder"`
-	InscriptionId    string  `json:"inscription_id"`
-	P                string  `json:"p"`
-	Op               string  `json:"op"`
-	Name             string  `json:"name"`
-	Handle           string  `json:"ord_handle"`
-	Index            string  `json:"ord_index"`
-}
-
-type NameCheckResult struct {
-	Name   string `json:"name"`
-	Result int    `json:"result"` // 0 允许铸造； 1 已经铸造； < 0，其他错误
+	Holder        string `json:"holder"`
+	InscriptionId string `json:"inscription_id"`
+	P             string `json:"p"`
+	Op            string `json:"op"`
+	Name          string `json:"name"`
+	Handle        string `json:"ord_handle"`
+	Index         string `json:"ord_index"`
 }
 
 type InscriptionId struct {
-	Id   string `json:"id"`
+	Id string `json:"id"`
 }
 
 type NftInfo struct {
