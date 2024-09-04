@@ -4,41 +4,12 @@ import (
 	"fmt"
 	"math"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
 
-	"github.com/OLProtocol/ordx/indexer/exotic"
 	"github.com/OLProtocol/ordx/common"
+	"github.com/OLProtocol/ordx/indexer/exotic"
 )
-
-// memory util
-func PrintMemUsage() {
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
-
-	// For info on each, see: https://golang.org/pkg/runtime/#MemStats
-	fmt.Printf("Alloc = %v MiB", bToMb(m.Alloc))
-	fmt.Printf("\tTotalAlloc = %v MiB", bToMb(m.TotalAlloc))
-	fmt.Printf("\tSys = %v MiB", bToMb(m.Sys))
-	fmt.Printf("\tNumGC = %v\n", m.NumGC)
-}
-
-func GetSysMb() uint64 {
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
-	return bToMb(m.Sys)
-}
-
-func GetAlloc() uint64 {
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
-	return bToMb(m.Alloc)
-}
-
-func bToMb(b uint64) uint64 {
-	return b / 1024 / 1024
-}
 
 func isValidExoticType(ty string) bool {
 	for _, s := range exotic.SatributeList {
@@ -138,7 +109,7 @@ func reAlignRange(ord []*common.Range, satpoint int, amt int64) []*common.Range 
 func getPercentage(str string) (int, error) {
 	// 只接受两位小数，或者100%
 	str2 := strings.TrimSpace(str)
-	
+
 	var f float64
 	var err error
 	if strings.Contains(str2, "%") {
@@ -159,15 +130,15 @@ func getPercentage(str string) (int, error) {
 		if err != nil || !math {
 			return 0, fmt.Errorf("invalid format %s", str)
 		}
-		
+
 		f, err = strconv.ParseFloat(str2, 32)
-		f = f*100
+		f = f * 100
 	}
 
 	r := int(math.Round(f))
 	if r > 100 {
 		return 0, fmt.Errorf("invalid format %s", str)
 	}
-	
+
 	return r, err
 }
