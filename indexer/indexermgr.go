@@ -6,7 +6,7 @@ import (
 
 	"github.com/OLProtocol/ordx/common"
 	base_indexer "github.com/OLProtocol/ordx/indexer/base"
-	"github.com/OLProtocol/ordx/indexer/exotic"
+
 	"github.com/OLProtocol/ordx/indexer/ft"
 	"github.com/OLProtocol/ordx/indexer/nft"
 	"github.com/OLProtocol/ordx/indexer/ns"
@@ -17,14 +17,13 @@ import (
 )
 
 type IndexerMgr struct {
-	dbDir  string
+	dbDir string
 	// data from blockchain
 	baseDB *badger.DB
 	ftDB   *badger.DB
 	nsDB   *badger.DB
 	nftDB  *badger.DB
 	// data from market
-	localDB *badger.DB
 
 	// 配置参数
 	chaincfgParam   *chaincfg.Params
@@ -32,11 +31,10 @@ type IndexerMgr struct {
 	ordFirstHeight  int
 	maxIndexHeight  int
 
-	exotic    *exotic.ExoticIndexer
 	ftIndexer *ft.FTIndexer
 	ns        *ns.NameService
 	nft       *nft.NftIndexer
-	clmap    map[common.TickerName]map[string]int64  // collections map, ticker -> inscriptionId -> asset amount
+	clmap     map[common.TickerName]map[string]int64 // collections map, ticker -> inscriptionId -> asset amount
 
 	mutex sync.RWMutex
 	// 跑数据
@@ -44,10 +42,10 @@ type IndexerMgr struct {
 	compiling       *base_indexer.BaseIndexer
 	// 备份所有需要写入数据库的数据
 	compilingBackupDB *base_indexer.BaseIndexer
-	exoticBackupDB    *exotic.ExoticIndexer
-	ordxBackupDB      *ft.FTIndexer
-	nsBackupDB        *ns.NameService
-	nftBackupDB       *nft.NftIndexer
+
+	ordxBackupDB *ft.FTIndexer
+	nsBackupDB   *ns.NameService
+	nftBackupDB  *nft.NftIndexer
 	// 接收前端api访问的实例，隔离内存访问
 	rpcService *base_indexer.RpcIndexer
 
@@ -73,11 +71,11 @@ func NewIndexerMgr(
 		chaincfgParam:     chaincfgParam,
 		maxIndexHeight:    maxIndexHeight,
 		compilingBackupDB: nil,
-		exoticBackupDB:    nil,
-		ordxBackupDB:      nil,
-		nsBackupDB:        nil,
-		nftBackupDB:       nil,
-		rpcService:        nil,
+
+		ordxBackupDB: nil,
+		nsBackupDB:   nil,
+		nftBackupDB:  nil,
+		rpcService:   nil,
 	}
 
 	instance = mgr
@@ -104,7 +102,6 @@ func (b *IndexerMgr) Init() {
 	b.compiling = base_indexer.NewBaseIndexer(b.baseDB, b.chaincfgParam, b.maxIndexHeight)
 	b.compiling.Init(b.processOrdProtocol, b.forceUpdateDB)
 	b.lastCheckHeight = b.compiling.GetSyncHeight()
-	b.initCollections()
 
 	dbver := b.GetBaseDBVer()
 	common.Log.Infof("base db version: %s", dbver)
@@ -112,13 +109,6 @@ func (b *IndexerMgr) Init() {
 		common.Log.Panicf("DB version inconsistent. DB ver %s, but code base %s", dbver, base_indexer.BASE_DB_VERSION)
 	}
 
-	if !instance.IsMainnet() {
-		exotic.IsTestNet = true
-		exotic.SatributeList = append(exotic.SatributeList, exotic.Customized)
-	}
-
-	b.exotic = exotic.NewExoticIndexer(b.compiling)
-	b.exotic.Init()
 	b.nft = nft.NewNftIndexer(b.nftDB)
 	b.nft.Init(b.compiling)
 	b.ftIndexer = ft.NewOrdxIndexer(b.ftDB)
@@ -129,7 +119,7 @@ func (b *IndexerMgr) Init() {
 	b.rpcService = base_indexer.NewRpcIndexer(b.compiling)
 
 	b.compilingBackupDB = nil
-	b.exoticBackupDB = nil
+
 	b.ordxBackupDB = nil
 	b.nsBackupDB = nil
 	b.nftBackupDB = nil
@@ -178,17 +168,6 @@ func (b *IndexerMgr) StartDaemon(stopChan chan bool) {
 						}
 					} else {
 						b.updateDB()
-						// 每周定期检查数据 （目前主网一次检查需要半个小时-1个小时，需要考虑这个影响）
-						// if b.lastCheckHeight != b.compiling.GetSyncHeight() {
-						// 	period := 1000
-						// 	if b.compiling.GetSyncHeight()%period == 0 {
-						// 		b.lastCheckHeight = b.compiling.GetSyncHeight()
-						// 		b.checkSelf()
-						// 	}
-						// }
-						if b.dbStatistic() {
-							bWantExit = true
-						}
 					}
 				} else if ret > 0 {
 					// handle reorg
@@ -241,7 +220,7 @@ func (b *IndexerMgr) StartDaemon(stopChan chan bool) {
 }
 
 func (b *IndexerMgr) closeDB() {
-	common.RunBadgerGC(b.localDB)
+
 	common.RunBadgerGC(b.baseDB)
 	common.RunBadgerGC(b.nftDB)
 	common.RunBadgerGC(b.nsDB)
@@ -251,13 +230,13 @@ func (b *IndexerMgr) closeDB() {
 	b.nsDB.Close()
 	b.nftDB.Close()
 	b.baseDB.Close()
-	b.localDB.Close()
+
 }
 
 func (b *IndexerMgr) checkSelf() {
 	start := time.Now()
 	b.compiling.CheckSelf()
-	b.exotic.CheckSelf()
+
 	b.nft.CheckSelf(b.baseDB)
 	b.ftIndexer.CheckSelf(b.compiling.GetSyncHeight())
 	b.ns.CheckSelf(b.baseDB)
@@ -266,7 +245,7 @@ func (b *IndexerMgr) checkSelf() {
 
 func (b *IndexerMgr) forceUpdateDB() {
 	startTime := time.Now()
-	b.exotic.UpdateDB()
+
 	b.nft.UpdateDB()
 	b.ns.UpdateDB()
 	b.ftIndexer.UpdateDB()
@@ -325,7 +304,7 @@ func (b *IndexerMgr) updateDB() {
 func (b *IndexerMgr) performUpdateDBInBuffer() {
 	b.cleanDBBuffer() // must before UpdateDB
 	b.compilingBackupDB.UpdateDB()
-	b.exoticBackupDB.UpdateDB()
+
 	b.nftBackupDB.UpdateDB()
 	b.nsBackupDB.UpdateDB()
 	b.ordxBackupDB.UpdateDB()
@@ -335,7 +314,6 @@ func (b *IndexerMgr) prepareDBBuffer() {
 	b.compilingBackupDB = b.compiling.Clone()
 	b.compiling.ResetBlockVector()
 
-	b.exoticBackupDB = b.exotic.Clone()
 	b.ordxBackupDB = b.ftIndexer.Clone()
 	b.nsBackupDB = b.ns.Clone()
 	b.nftBackupDB = b.nft.Clone()
@@ -344,7 +322,7 @@ func (b *IndexerMgr) prepareDBBuffer() {
 
 func (b *IndexerMgr) cleanDBBuffer() {
 	b.compiling.Subtract(b.compilingBackupDB)
-	b.exotic.Subtract(b.exoticBackupDB)
+
 	b.ftIndexer.Subtract(b.ordxBackupDB)
 	b.ns.Subtract(b.nsBackupDB)
 	b.nft.Subtract(b.nftBackupDB)
@@ -370,17 +348,3 @@ func (p *IndexerMgr) repair() bool {
 	//p.compiling.Repair()
 	return false
 }
-
-func (p *IndexerMgr) dbStatistic() bool {
-	// save to latest DB first, save time. 
-	// if p.compilingBackupDB == nil {
-	// 	p.prepareDBBuffer()
-	// }
-	// p.performUpdateDBInBuffer()
-
-	//common.Log.Infof("start searching...")
-	//return p.SearchPredefinedName()
-	//return p.searchName()
-	return false
-}
-

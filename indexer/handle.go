@@ -38,17 +38,11 @@ func (s *IndexerMgr) processOrdProtocol(block *common.Block) {
 		}
 	}
 	//common.Log.Infof("processOrdProtocol loop %d finished. cost: %v", count, time.Since(measureStartTime))
-
-	//time2 := time.Now()
-	s.exotic.UpdateTransfer(block)
 	s.nft.UpdateTransfer(block)
 	s.ns.UpdateTransfer(block)
 	s.ftIndexer.UpdateTransfer(block)
 
 	//common.Log.Infof("processOrdProtocol UpdateTransfer finished. cost: %v", time.Since(time2))
-
-	// 检测是否一致，如果不一致，需要进一步调试。
-	// s.detectInconsistent(detectOrdMap, block.Height)
 
 	common.Log.Infof("processOrdProtocol %d,is done: cost: %v", block.Height, time.Since(measureStartTime))
 }
