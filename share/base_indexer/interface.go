@@ -26,8 +26,6 @@ type Indexer interface {
 	// return: utxoId, sat ranges
 	GetOrdinalsWithUtxo(utxo string) (uint64, []*common.Range, error)
 	// return: address, utxo
-	FindSat(sat int64) (string, string, error)
-	// return: address
 
 	// FT
 

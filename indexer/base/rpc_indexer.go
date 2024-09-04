@@ -3,7 +3,6 @@ package base
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/OLProtocol/ordx/common"
 
@@ -162,7 +161,7 @@ func (b *RpcIndexer) GetAddressByID(id uint64) (string, error) {
 }
 
 // only for RPC interface
-func (b *RpcIndexer) GetAddressId(address string) (uint64) {
+func (b *RpcIndexer) GetAddressId(address string) uint64 {
 
 	id, err := common.GetAddressIdFromDB(b.db, address)
 	if err != nil {
@@ -217,105 +216,7 @@ func (b *RpcIndexer) GetUTXOs2(address string) []string {
 	return utxos
 }
 
-func (b *RpcIndexer) searhing(sat int64) {
-	var value common.UtxoValueInDB
-	bFound := false
-	b.db.View(func(txn *badger.Txn) error {
-		var err error
-		prefix := []byte(common.DB_KEY_UTXO)
-		itr := txn.NewIterator(badger.DefaultIteratorOptions)
-		defer itr.Close()
-
-		startTime := time.Now()
-		common.Log.Infof("Search sat in %s table ...", common.DB_KEY_UTXO)
-
-		for itr.Seek([]byte(prefix)); itr.ValidForPrefix([]byte(prefix)); itr.Next() {
-			item := itr.Item()
-
-			err = item.Value(func(data []byte) error {
-				return common.DecodeBytesWithProto3(data, &value)
-			})
-			if err != nil {
-				common.Log.Errorf("item.Value error: %v", err)
-				continue
-			}
-
-			if common.IsSatInRanges(sat, value.Ordinals) {
-				common.Log.Infof("find sat %d in utxo %d in address %d", sat, value.UtxoId, value.AddressIds[0])
-				bFound = true
-				break
-			}
-		}
-		common.Log.Infof("%s table takes %v", common.DB_KEY_UTXO, time.Since(startTime))
-
-		return nil
-	})
-
-	b.mutex.Lock()
-	status, ok := b.satSearchingStatus[sat]
-	if ok {
-		if bFound {
-			status.Address, _ = common.GetAddressByID(b.db, value.AddressIds[0])
-			status.Utxo, _ = common.GetUtxoByID(b.db, value.UtxoId)
-			status.Status = 0
-		} else {
-			status.Status = -1
-		}
-	}
-
-	now := time.Now()
-	threshold := now.Add(-24 * time.Hour).Unix()
-	deledSats := make([]int64, 0)
-	for key, value := range b.satSearchingStatus {
-		if value.Ts < threshold {
-			deledSats = append(deledSats, key)
-		}
-	}
-	for _, sat := range deledSats {
-		delete(b.satSearchingStatus, sat)
-	}
-	b.mutex.Unlock()
-
-	b.bSearching = false
-}
-
 // address, utxo, message
-func (b *RpcIndexer) FindSat(sat int64) (string, string, error) {
-	b.mutex.RLock()
-	status, ok := b.satSearchingStatus[sat]
-	b.mutex.RUnlock()
-	if ok {
-		if status.Status > 0 {
-			return "", "", fmt.Errorf("still running, please check again later")
-		} else if status.Status == 0 {
-			return status.Address, status.Utxo, nil
-		} else {
-			return "", "", fmt.Errorf("can't find this sat")
-		}
-	}
-
-	if sat >= b.stats.TotalSats {
-		return "", "", fmt.Errorf("sat too big")
-	}
-
-	if sat < 0 {
-		return "", "", fmt.Errorf("sat number must be greater than 0")
-	}
-
-	if b.bSearching {
-		return "", "", fmt.Errorf("another searching thread is running")
-	}
-	b.bSearching = true
-
-	b.mutex.Lock()
-	b.satSearchingStatus[sat] = &SatSearchingStatus{Status: 1, Ts: time.Now().Unix()}
-	b.mutex.Unlock()
-
-	go b.searhing(sat)
-
-	return "", "", fmt.Errorf("start searhing, please check later")
-}
-
 func (b *RpcIndexer) getUtxosWithAddress(address string) (*common.AddressValue, error) {
 	var addressValueInDB *common.AddressValueInDB
 	b.db.View(func(txn *badger.Txn) error {
