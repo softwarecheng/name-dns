@@ -245,24 +245,3 @@ func (s *FTIndexer) loadMintDataFromDB(tickerName string) map[string]*common.Min
 
 	return result
 }
-
-func (s *FTIndexer) getTickerFromDB(tickerName string) *common.Ticker {
-	var result common.Ticker
-	err := s.db.View(func(txn *badger.Txn) error {
-		key := DB_PREFIX_TICKER + strings.ToLower(tickerName)
-		err := common.GetValueFromDB([]byte(key), txn, &result)
-		if err == badger.ErrKeyNotFound {
-			common.Log.Debugf("GetTickFromDB key: %s, error: ErrKeyNotFound ", key)
-			return err
-		} else if err != nil {
-			common.Log.Debugf("GetTickFromDB error: %v", err)
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		common.Log.Debugf("GetTickFromDB error: %v", err)
-		return nil
-	}
-	return &result
-}

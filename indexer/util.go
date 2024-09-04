@@ -1,61 +1,8 @@
 package indexer
 
 import (
-	"fmt"
-	"math"
-	"regexp"
-	"strconv"
-	"strings"
-
 	"github.com/OLProtocol/ordx/common"
-	"github.com/OLProtocol/ordx/indexer/exotic"
 )
-
-func isValidExoticType(ty string) bool {
-	for _, s := range exotic.SatributeList {
-		if string(s) == ty {
-			return true
-		}
-	}
-	return false
-}
-
-func parseSatAttrString(s string) (common.SatAttr, error) {
-	attr := common.SatAttr{}
-	attributes := strings.Split(s, ";")
-	for _, attribute := range attributes {
-		pair := strings.SplitN(attribute, "=", 2)
-		if len(pair) != 2 {
-			return attr, fmt.Errorf("invalid attribute format: %s", attribute)
-		}
-		key := pair[0]
-		value := pair[1]
-
-		switch key {
-		case "rar":
-			if isValidExoticType(value) {
-				attr.Rarity = value
-			} else {
-				return attr, fmt.Errorf("invalid exotic type value: %s", value)
-			}
-		case "trz":
-			trailingZero, err := strconv.Atoi(value)
-			if err != nil {
-				return attr, fmt.Errorf("invalid trailing zero value: %s", value)
-			}
-			if trailingZero <= 0 {
-				return attr, fmt.Errorf("invalid trailing zero value: %s", value)
-			}
-			attr.TrailingZero = trailingZero
-		case "tmpl":
-			attr.Template = value
-		case "reg":
-			attr.RegularExp = value
-		}
-	}
-
-	return attr, nil
-}
 
 func skipOffsetRange(ord []*common.Range, satpoint int) []*common.Range {
 	if satpoint == 0 {
@@ -104,41 +51,4 @@ func reSizeRange(ord []*common.Range, amt int64) []*common.Range {
 func reAlignRange(ord []*common.Range, satpoint int, amt int64) []*common.Range {
 	ret := skipOffsetRange(ord, satpoint)
 	return reSizeRange(ret, amt)
-}
-
-func getPercentage(str string) (int, error) {
-	// 只接受两位小数，或者100%
-	str2 := strings.TrimSpace(str)
-
-	var f float64
-	var err error
-	if strings.Contains(str2, "%") {
-		str2 = strings.TrimRight(str2, "%") // 去掉百分号
-		if strings.Contains(str2, ".") {
-			parts := strings.Split(str2, ".")
-			str3 := strings.Trim(parts[1], "0")
-			if str3 != "" {
-				return 0, fmt.Errorf("invalid format %s", str)
-			}
-		}
-		f, err = strconv.ParseFloat(str2, 32)
-	} else {
-		regex := `^\d+(\.\d{0,2})?$`
-		str2 = strings.TrimRight(str2, "0")
-		var math bool
-		math, err = regexp.MatchString(regex, str2)
-		if err != nil || !math {
-			return 0, fmt.Errorf("invalid format %s", str)
-		}
-
-		f, err = strconv.ParseFloat(str2, 32)
-		f = f * 100
-	}
-
-	r := int(math.Round(f))
-	if r > 100 {
-		return 0, fmt.Errorf("invalid format %s", str)
-	}
-
-	return r, err
 }

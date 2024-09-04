@@ -35,17 +35,6 @@ func (p *IndexerMgr) GetBlockInfo(height int) (*common.BlockInfo, error) {
 	return p.rpcService.GetBlockInfo(height)
 }
 
-func (p *IndexerMgr) GetHolderAddress(inscriptionId string) string {
-	nft := p.nft.GetNftWithInscriptionId(inscriptionId)
-	if nft != nil {
-		address, err := p.rpcService.GetAddressByID(nft.OwnerAddressId)
-		if err == nil {
-			return address
-		}
-	}
-	return ""
-}
-
 func (p *IndexerMgr) GetAddressById(id uint64) string {
 	address, _ := p.rpcService.GetAddressByID(id)
 	return address

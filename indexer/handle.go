@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/OLProtocol/ordx/common"
-	indexer "github.com/OLProtocol/ordx/indexer/common"
 	"github.com/OLProtocol/ordx/indexer/ns"
 )
 
@@ -65,306 +64,6 @@ func findOutputWithSat(tx *common.Transaction, sat int64) *common.Output {
 	return nil
 }
 
-func (s *IndexerMgr) handleDeployTicker(rngs []*common.Range, satpoint int, out *common.Output,
-	content *common.OrdxDeployContent, nft *common.Nft) *common.Ticker {
-	height := nft.Base.BlockHeight
-	if !common.IsValidSat20Name(content.Ticker) || len(content.Ticker) == 4 {
-		common.Log.Warnf("IndexerMgr.handleDeployTicker: inscriptionId: %s, ticker: %s, invalid ticker",
-			nft.Base.InscriptionId, content.Ticker)
-		return nil
-	}
-
-	addressId := nft.OwnerAddressId
-	var reg = s.ns.GetNameRegisterInfo(content.Ticker)
-	if reg != nil && s.isSat20Actived(int(height)) {
-		if reg.Nft.OwnerAddressId != addressId {
-			common.Log.Warnf("IndexerMgr.handleDeployTicker: inscriptionId: %s, ticker: %s has owner %d",
-				nft.Base.InscriptionId, content.Ticker, reg.Nft.OwnerAddressId)
-			return nil
-		}
-	}
-
-	var err error
-	lim := int64(1)
-	if content.Lim != "" {
-		lim, err = strconv.ParseInt(content.Lim, 10, 64)
-		if err != nil {
-			common.Log.Warnf("IndexerMgr.handleDeployTicker: inscriptionId: %s, ticker: %s, invalid lim: %s",
-				nft.Base.InscriptionId, content.Ticker, content.Lim)
-			return nil
-		}
-		if lim < 0 {
-			common.Log.Warnf("IndexerMgr.handleDeployTicker: inscriptionId: %s, ticker: %s, invalid lim: %d",
-				nft.Base.InscriptionId, content.Ticker, lim)
-			return nil
-		}
-	}
-
-	selfmint := 0
-	if content.SelfMint != "" {
-		selfmint, err = getPercentage(content.SelfMint)
-		if err != nil {
-			common.Log.Warnf("IndexerMgr.handleDeployTicker: inscriptionId: %s, ticker: %s, invalid SelfMint: %s",
-				nft.Base.InscriptionId, content.Ticker, content.SelfMint)
-			return nil
-		}
-		if selfmint > 100 {
-			common.Log.Warnf("IndexerMgr.handleDeployTicker: inscriptionId: %s, ticker: %s, invalid SelfMint: %s",
-				nft.Base.InscriptionId, content.Ticker, content.SelfMint)
-			return nil
-		}
-	}
-
-	max := int64(-1)
-	if content.Max != "" {
-		max, err = strconv.ParseInt(content.Max, 10, 64)
-		if err != nil {
-			common.Log.Warnf("IndexerMgr.handleDeployTicker: inscriptionId: %s, ticker: %s, invalid max: %s",
-				nft.Base.InscriptionId, content.Ticker, content.Max)
-			return nil
-		}
-		if max < 0 {
-			common.Log.Warnf("IndexerMgr.handleDeployTicker: inscriptionId: %s, ticker: %s, invalid max: %d",
-				nft.Base.InscriptionId, content.Ticker, max)
-			return nil
-		}
-	}
-	if selfmint > 0 {
-		if content.Max == "" {
-			common.Log.Warnf("IndexerMgr.handleDeployTicker: inscriptionId: %s, ticker: %s, must set max",
-				nft.Base.InscriptionId, content.Ticker)
-			return nil
-		}
-	}
-
-	blockStart := -1
-	blockEnd := -1
-	if content.Block != "" {
-		parts := strings.Split(content.Block, "-")
-		if len(parts) != 2 {
-			common.Log.Warnf("IndexerMgr.handleDeployTicker: inscriptionId: %s, ticker: %s, invalid block: %s",
-				nft.Base.InscriptionId, content.Ticker, content.Block)
-			return nil
-		}
-		var err error
-		blockStart, err = strconv.Atoi(parts[0])
-		if err != nil {
-			common.Log.Warnf("IndexerMgr.handleDeployTicker: inscriptionId: %s, ticker: %s, invalid block: %s",
-				nft.Base.InscriptionId, content.Ticker, content.Block)
-			return nil
-		}
-		if blockStart < 0 {
-			common.Log.Warnf("IndexerMgr.handleDeployTicker: inscriptionId:%s, ticker: %s, invalid block: %s",
-				nft.Base.InscriptionId, content.Ticker, content.Block)
-			return nil
-		}
-		blockEnd, err = strconv.Atoi(parts[1])
-		if err != nil {
-			common.Log.Warnf("IndexerMgr.handleDeployTicker: inscriptionId: %s, ticker: %s, invalid block: %s",
-				nft.Base.InscriptionId, content.Ticker, content.Block)
-			return nil
-		}
-		if blockEnd < 0 {
-			common.Log.Warnf("IndexerMgr.handleDeployTicker: inscriptionId: %s, ticker: %s, invalid block: %s",
-				nft.Base.InscriptionId, content.Ticker, content.Block)
-			return nil
-		}
-		if blockEnd < blockStart {
-			common.Log.Warnf("IndexerMgr.handleDeployTicker: inscriptionId: %s, ticker: %s, invalid block: %s",
-				nft.Base.InscriptionId, content.Ticker, content.Block)
-			return nil
-		}
-	}
-	if selfmint < 100 && s.isSat20Actived(int(height)) {
-		if s.IsMainnet() {
-			if int(height)+common.MIN_BLOCK_INTERVAL > blockStart {
-				common.Log.Warnf("IndexerMgr.handleDeployTicker: inscriptionId: %s, ticker: %s, start of block should be larger than: %d",
-					nft.Base.InscriptionId, content.Ticker, height+common.MIN_BLOCK_INTERVAL)
-				return nil
-			}
-		} else {
-			if int(height)+5 > blockStart {
-				common.Log.Warnf("IndexerMgr.handleDeployTicker: inscriptionId: %s, ticker: %s, start of block should be larger than: %d",
-					nft.Base.InscriptionId, content.Ticker, height+5)
-				return nil
-			}
-		}
-
-	}
-
-	var attr common.SatAttr
-	if content.Attr != "" {
-		var err error
-		attr, err = parseSatAttrString(content.Attr)
-		if err != nil {
-			common.Log.Warnf("IndexerMgr.handleDeployTicker: inscriptionId: %s, ticker: %s, invalid attr: %s, ParseSatAttrString err: %v",
-				nft.Base.InscriptionId, content.Ticker, content.Attr, err)
-			return nil
-		}
-	}
-
-	newRngs := reAlignRange(rngs, satpoint, 1)
-	if len(newRngs) == 0 {
-		common.Log.Warnf("IndexerMgr.handleDeployTicker: inscriptionId: %s, ticker: %s, satpoint %d ",
-			nft.Base.InscriptionId, content.Ticker, satpoint)
-		return nil
-	}
-
-	// 确保newRngs都在output中
-	if !common.RangesContained(out.Ordinals, newRngs) {
-		common.Log.Warnf("IndexerMgr.handleDeployTicker: inscriptionId: %s, ticker: %s, ranges not in output",
-			nft.Base.InscriptionId, content.Ticker)
-		return nil
-	}
-
-	nft.Base.TypeName = common.ASSET_TYPE_NS
-	nft.Base.UserData = []byte(content.Ticker)
-	ticker := &common.Ticker{
-		Base:       common.CloneBaseContent(nft.Base),
-		Name:       content.Ticker,
-		Desc:       content.Des,
-		Type:       common.ASSET_TYPE_FT,
-		Limit:      lim,
-		SelfMint:   selfmint,
-		Max:        max,
-		BlockStart: blockStart,
-		BlockEnd:   blockEnd,
-		Attr:       attr,
-	}
-
-	if reg == nil {
-		reg = &ns.NameRegister{
-			Nft:  nft,
-			Name: strings.ToLower(ticker.Name),
-		}
-
-		s.ns.NameRegister(reg)
-	}
-
-	return ticker
-}
-
-func (s *IndexerMgr) handleMintTicker(rngs []*common.Range, satpoint int, out *common.Output,
-	content *common.OrdxMintContent, nft *common.Nft) *common.Mint {
-	inscriptionId := nft.Base.InscriptionId
-	height := nft.Base.BlockHeight
-	deployTicker := s.ftIndexer.GetTicker(content.Ticker)
-	if deployTicker == nil {
-		common.Log.Warnf("IndexerMgr.handleMintTicker: inscriptionId: %s, ticker: %s, no deploy ticker",
-			inscriptionId, content.Ticker)
-		return nil
-	}
-	if deployTicker.BlockStart != -1 && int(height) < deployTicker.BlockStart {
-		common.Log.Warnf("IndexerMgr.handleMintTicker: inscriptionId: %s, ticker: %s, block height(%d) not in depoly block range(%d-%d)",
-			inscriptionId, content.Ticker, height, deployTicker.BlockStart, deployTicker.BlockEnd)
-		return nil
-	}
-
-	if deployTicker.BlockEnd != -1 && int(height) > deployTicker.BlockEnd {
-		common.Log.Warnf("IndexerMgr.handleMintTicker: inscriptionId: %s, ticker: %s, block height(%d) not in depoly block range(%d-%d)",
-			inscriptionId, content.Ticker, height, deployTicker.BlockStart, deployTicker.BlockEnd)
-		return nil
-	}
-
-	amt := deployTicker.Limit
-	// check mint limit
-	if content.Amt != "" {
-		var err error
-		amt, err = strconv.ParseInt(content.Amt, 10, 64)
-		if err != nil {
-			common.Log.Warnf("IndexerMgr.handleMintTicker: inscriptionId: %s, ticker: %s, invalid amt: %s",
-				inscriptionId, content.Ticker, content.Amt)
-			return nil
-		}
-		if amt < 0 {
-			common.Log.Warnf("IndexerMgr.handleMintTicker: inscriptionId: %s, ticker: %s, invalid amt: %d",
-				inscriptionId, content.Ticker, amt)
-			return nil
-		}
-
-		if amt > deployTicker.Limit {
-			common.Log.Warnf("IndexerMgr.handleMintTicker: inscriptionId: %s, ticker: %s, amt(%d) > limit(%d)",
-				inscriptionId, content.Ticker, amt, deployTicker.Limit)
-			return nil
-		}
-	}
-	addressId := s.compiling.GetAddressId(out.Address.Addresses[0])
-	permitAmt := s.getMintAmount(deployTicker.Name, addressId)
-	if amt > permitAmt {
-		common.Log.Warnf("IndexerMgr.handleMintTicker: inscriptionId: %s, ticker: %s, invalid amt: %s",
-			inscriptionId, content.Ticker, content.Amt)
-		return nil
-	}
-
-	var newRngs []*common.Range
-	satsNum := int64(amt)
-	var sat int64 = nft.Base.Sat
-	if indexer.IsRaritySatRequired(&deployTicker.Attr) {
-		// check trz=N
-		if deployTicker.Attr.TrailingZero > 0 {
-			if satsNum != 1 || !indexer.EndsWithNZeroes(deployTicker.Attr.TrailingZero, nft.Base.Sat) {
-				common.Log.Warnf("IndexerMgr.handleMintTicker: inscriptionId: %s, ticker: %s, invalid sat: %d, trailingZero: %d",
-					inscriptionId, content.Ticker, nft.Base.Sat, deployTicker.Attr.TrailingZero)
-				return nil
-			}
-		}
-
-		newRngs = skipOffsetRange(rngs, satpoint)
-		// check rarity
-		if deployTicker.Attr.Rarity != "" {
-			exoticranges := s.exotic.GetExoticsWithType(newRngs, deployTicker.Attr.Rarity)
-			size := int64(0)
-			newRngs2 := make([]*common.Range, 0)
-			for _, exrng := range exoticranges {
-				size += exrng.Range.Size
-				newRngs2 = append(newRngs2, exrng.Range)
-
-			}
-			if size < (satsNum) {
-				common.Log.Warnf("IndexerMgr.handleMintTicker: inscriptionId: %s, ticker: %s, invalid sat: %d, size %d, rarity: %s",
-					inscriptionId, content.Ticker, sat, size, deployTicker.Attr.Rarity)
-				return nil
-			}
-			newRngs = newRngs2
-		}
-		newRngs = reSizeRange(newRngs, satsNum)
-	} else {
-		newRngs = reAlignRange(rngs, satpoint, satsNum)
-	}
-
-	if len(newRngs) == 0 || common.GetOrdinalsSize(newRngs) != satsNum {
-		common.Log.Warnf("IndexerMgr.handleMintTicker: inscriptionId: %s, ticker: %s, amt(%d), no enough sats %d",
-			inscriptionId, content.Ticker, satsNum, common.GetOrdinalsSize(newRngs))
-		return nil
-	}
-
-	// 铸造结果：从指定的nft，往后如果有satsNum个聪，就是铸造成功，这些聪都是输入的一部分就可以，输出在哪里无所谓
-	// // 确保newRngs都在output中
-	// if !common.RangesContained(out.Ordinals, newRngs) {
-	// 	common.Log.Warnf("IndexerMgr.handleMintTicker: inscriptionId: %s, ticker: %s, ranges not in output",
-	// 		inscriptionId, content.Ticker)
-	// 	return nil
-	// }
-
-	// 禁止在同一个聪上做同样名字的铸造
-	if s.hasSameTickerInRange(content.Ticker, newRngs) {
-		common.Log.Warnf("IndexerMgr.handleMintTicker: inscriptionId: %s, ticker: %s, ranges has same ticker",
-			inscriptionId, content.Ticker)
-		return nil
-	}
-
-	nft.Base.TypeName = common.ASSET_TYPE_FT
-	mint := &common.Mint{
-		Base:     common.CloneBaseContent(nft.Base),
-		Name:     content.Ticker,
-		Ordinals: newRngs,
-		Amt:      int64(amt),
-		Desc:     content.Des,
-	}
-
-	return mint
-}
-
 func (s *IndexerMgr) handleNameRegister(content *common.OrdxRegContent, nft *common.Nft) {
 
 	name := strings.ToLower(content.Name)
@@ -404,28 +103,6 @@ func (s *IndexerMgr) handleNameUpdate(content *common.OrdxUpdateContentV2, nft *
 	if nft.OwnerAddressId != reg.Nft.OwnerAddressId {
 		common.Log.Warnf("IndexerMgr.handleNameUpdate: %s, Name %s has different owner", nft.Base.InscriptionId, content.Name)
 		return
-	}
-
-	// if nft.Base.Sat != reg.Nft.Base.Sat {
-	// 	common.Log.Warnf("IndexerMgr.handleNameUpdate: %s, name: %s, invalid sat: %d : %d",
-	// 		nft.Base.InscriptionId, content.Name, reg.Nft.Base.Sat, nft.Base.Sat)
-	// 	return
-	// }
-
-	// 如果是一个ticker，看看是否要修改显示封面（不允许修改跟铸币相关的属性）
-	ticker := s.ftIndexer.GetTicker(content.Name)
-	if ticker != nil {
-		delegate := ""
-		for k, v := range content.KVs {
-			switch k {
-			case "Delegate":
-				delegate = v
-			}
-		}
-		if delegate != "" {
-			ticker.Base.Delegate = delegate
-			s.ftIndexer.UpdateTick(ticker)
-		}
 	}
 
 	kvs := make([]*ns.KeyValue, 0)
@@ -485,58 +162,6 @@ func (s *IndexerMgr) handleNameRouting(content *common.OrdxUpdateContentV2, nft 
 	s.ns.NameUpdate(update)
 }
 
-func (s *IndexerMgr) handleOrdX(inUtxoId uint64, input []*common.Range, satpoint int, out *common.Output,
-	fields map[int][]byte, nft *common.Nft) {
-	ordxInfo, bOrdx := common.IsOrdXProtocol(fields)
-	if !bOrdx {
-		return
-	}
-
-	ordxType := common.GetBasicContent(ordxInfo)
-	switch ordxType.Op {
-	case "deploy":
-		deployInfo := common.ParseDeployContent(ordxInfo)
-		if deployInfo == nil {
-			return
-		}
-		// common.Log.Infof("indexer.handleOrdX: prepare deploy ticker, content: %s", deployInfo)
-
-		if s.ftIndexer.TickExisted(deployInfo.Ticker) {
-			common.Log.Warnf("ticker %s exists", deployInfo.Ticker)
-			return
-		}
-
-		ticker := s.handleDeployTicker(input, satpoint, out, deployInfo, nft)
-		if ticker == nil {
-			return
-		}
-
-		s.ftIndexer.UpdateTick(ticker)
-
-	case "mint":
-		mintInfo := common.ParseMintContent(ordxInfo)
-		if mintInfo == nil {
-			return
-		}
-		// common.Log.Infof("IndexerMgr.handleOrdX: prepare mint ticker is succ: %v", mintInfo)
-
-		if !s.ftIndexer.TickExisted(mintInfo.Ticker) {
-			common.Log.Warnf("ticker %s does not exist", mintInfo.Ticker)
-			return
-		}
-
-		mint := s.handleMintTicker(input, satpoint, out, mintInfo, nft)
-		if mint == nil {
-			return
-		}
-
-		s.ftIndexer.UpdateMint(inUtxoId, mint)
-
-	default:
-		//common.Log.Warnf("handleOrdX unknown ordx type: %s, content: %s, txid: %s", ordxType, content, tx.Txid)
-	}
-}
-
 func (s *IndexerMgr) handleOrd(input *common.Input,
 	fields map[int][]byte, inscriptionId int, tx *common.Transaction, block *common.Block) {
 
@@ -559,10 +184,6 @@ func (s *IndexerMgr) handleOrd(input *common.Input,
 			}
 		}
 	} else {
-		// 99e70421ab229d1ccf356e594512da6486e2dd1abdf6c2cb5014875451ee8073:0  788312
-		// c1e0db6368a43f5589352ed44aa1ff9af33410e4a9fd9be0f6ac42d9e4117151:0  788200
-		// 输入为0，输出也只有一个，也为0
-
 		output = tx.Outputs[0]
 	}
 
@@ -583,9 +204,7 @@ func (s *IndexerMgr) handleOrd(input *common.Input,
 	// 2. 再看看是否ordx协议
 	protocol, content := common.GetProtocol(fields)
 	switch protocol {
-	case "ordx":
-		s.handleOrdX(input.UtxoId, input.Ordinals, satpoint, output, fields, nft)
-	case "sns":	
+	case "sns":
 		domain := common.ParseDomainContent(string(fields[common.FIELD_CONTENT]))
 		if domain == nil {
 			domain = common.ParseDomainContent(string(content))
@@ -608,7 +227,7 @@ func (s *IndexerMgr) handleOrd(input *common.Input,
 				} else {
 					updateInfo = common.ParseUpdateContent(string(fields[common.FIELD_CONTENT]))
 				}
-				
+
 				if updateInfo == nil {
 					return
 				}
@@ -743,67 +362,4 @@ func getSatInRange(common []*common.Range, satpoint int) int64 {
 	}
 
 	return -1
-}
-
-func (s *IndexerMgr) hasSameTickerInRange(ticker string, rngs []*common.Range) bool {
-	for _, rng := range rngs {
-		if s.ftIndexer.CheckTickersWithSatRange(ticker, rng) {
-			return true
-		}
-	}
-	return false
-}
-
-func (s *IndexerMgr) getMintAmountByAddressId(ticker string, address uint64) int64 {
-	addrmap := s.GetHoldersWithTick(ticker)
-	return addrmap[address]
-}
-
-func (s *IndexerMgr) isSat20Actived(height int) bool {
-	if s.IsMainnet() {
-		return height >= 845000
-	} else if s.chaincfgParam.Name == "testnet3" {
-		return height >= 2810000
-	} else {
-		return height >= 0
-	}
-}
-
-func (b *IndexerMgr) getMintAmount(ticker string, addressId uint64) int64 {
-	deployTicker := b.ftIndexer.GetTicker(ticker)
-
-	if deployTicker == nil {
-		common.Log.Warnf("IndexerMgr.getMintAmount: ticker: %s, no deploy ticker", ticker)
-		return -1
-	}
-
-	nftOwnAddressId := b.nft.GetNftHolderWithInscriptionId(deployTicker.Base.InscriptionId)
-	isOwner := addressId == nftOwnAddressId
-
-	amt := int64(0)
-
-	mintAmount, _ := b.GetMintAmount(deployTicker.Name)
-	if deployTicker.SelfMint > 0 {
-		ownerMinted := b.getMintAmountByAddressId(deployTicker.Name, nftOwnAddressId)
-		if isOwner {
-			limit := (deployTicker.Max * int64(deployTicker.SelfMint)) / 100
-			amt = limit - ownerMinted
-		} else {
-			if deployTicker.SelfMint == 100 {
-				amt = 0
-			} else {
-				limit := (deployTicker.Max * int64(100-deployTicker.SelfMint)) / 100
-				amt = limit - (mintAmount - ownerMinted)
-			}
-		}
-	} else {
-		// == 0
-		if deployTicker.Max < 0 {
-			// no limit
-			amt = common.MaxSupply
-		} else {
-			amt = deployTicker.Max - mintAmount
-		}
-	}
-	return amt
 }

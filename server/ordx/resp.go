@@ -30,14 +30,3 @@ type NameRoutingResp struct {
 	serverOrdx.BaseResp
 	Data *serverOrdx.NameRouting `json:"data"`
 }
-
-type NamesWithAddressData struct {
-	Address string                     `json:"address"`
-	Total   int                        `json:"total"`
-	Names   []*serverOrdx.OrdinalsName `json:"names"`
-}
-
-type NamesWithAddressResp struct {
-	serverOrdx.BaseResp
-	Data *NamesWithAddressData `json:"data"`
-}

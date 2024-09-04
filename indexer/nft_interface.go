@@ -44,7 +44,7 @@ func (b *IndexerMgr) GetNfts(start, limit int) ([]int64, int) {
 func (b *IndexerMgr) getNftWithAddressInBuffer(address string) []*common.Nft {
 	if b.addressToNftMap == nil {
 		return b.initAddressToNftMap(address)
-	} 
+	}
 
 	b.mutex.RLock()
 	ret, ok := b.addressToNftMap[address]
@@ -115,7 +115,7 @@ func (b *IndexerMgr) GetNftAmountWithAddress(address string) map[string]int64 {
 		}
 	}
 	b.mutex.RUnlock()
-	
+
 	return result
 }
 
@@ -145,31 +145,4 @@ func (b *IndexerMgr) getNftsWithRanges(ranges []*common.Range) map[string][]*com
 		}
 	}
 	return result
-}
-
-func (p *IndexerMgr) GetNftHistory(start int, limit int) ([]*common.MintAbbrInfo, int) {
-	result := make([]*common.MintAbbrInfo, 0)
-	ids, total := p.nft.GetNfts(start, limit)
-	for _, id := range ids {
-		nft := p.nft.GetNftWithId(id)
-		if nft != nil {
-			info := common.NewMintAbbrInfo2(nft.Base)
-			result = append(result, info)
-		}
-	}
-	return result, total
-}
-
-// gen address
-func (p *IndexerMgr) GetNftHistoryWithAddress(addressId uint64, start int, limit int) ([]*common.MintAbbrInfo, int) {
-	result := make([]*common.MintAbbrInfo, 0)
-	ids, total := p.nft.GetNftsWithInscriptionAddress(addressId, start, limit)
-	for _, id := range ids {
-		nft := p.nft.GetNftWithId(id)
-		if nft != nil {
-			info := common.NewMintAbbrInfo2(nft.Base)
-			result = append(result, info)
-		}
-	}
-	return result, total
 }
