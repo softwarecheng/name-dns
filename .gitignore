@@ -10,7 +10,6 @@ log
 !example.env
 !example.yaml
 # build execute file
-ordx-*
-ordx
+./ordx
 .lnd/*
 sat20*
