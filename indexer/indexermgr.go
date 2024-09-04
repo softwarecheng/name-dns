@@ -71,11 +71,9 @@ func NewIndexerMgr(
 		chaincfgParam:     chaincfgParam,
 		maxIndexHeight:    maxIndexHeight,
 		compilingBackupDB: nil,
-
-		ordxBackupDB: nil,
-		nsBackupDB:   nil,
-		nftBackupDB:  nil,
-		rpcService:   nil,
+		nsBackupDB:        nil,
+		nftBackupDB:       nil,
+		rpcService:        nil,
 	}
 
 	instance = mgr
@@ -120,7 +118,6 @@ func (b *IndexerMgr) Init() {
 
 	b.compilingBackupDB = nil
 
-	b.ordxBackupDB = nil
 	b.nsBackupDB = nil
 	b.nftBackupDB = nil
 
