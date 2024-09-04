@@ -1,0 +1,77 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "main/baseindex",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "program": "${workspaceFolder}",
+            "args": [
+                "-env",
+                ".env"
+            ]
+        },
+        {
+            "name": "rpc-alone",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "program": "${workspaceFolder}",
+            "args": [
+                "-env",
+                ".env",
+                "-dbi"
+            ]
+        },
+        {
+            "name": "cmd",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "program": "${workspaceFolder}/cmd",
+            "args": [
+                "-env",
+                "./cmd/.env"
+            ]
+        },
+        {
+            "name": "dbgc",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "program": "${workspaceFolder}",
+            "args": [
+                "-dbgc",
+                "./db/testnet/basic"
+            ]
+        },
+        {
+            "name": "Debug LNCLI",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cli",
+            "args": [
+              
+            ],
+            "buildFlags": "-tags=autopilotrpc,chainrpc,dev,invoicesrpc,neutrinorpc,peersrpc,signrpc,walletrpc,watchtowerrpc",
+            "env": {
+              "GO111MODULE": "on"
+            },
+            "console": "integratedTerminal",
+            "showLog": true
+          },
+    ]
+}
