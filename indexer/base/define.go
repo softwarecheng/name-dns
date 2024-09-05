@@ -12,10 +12,6 @@ type SyncStats struct {
 	SyncHeight     int    `json:"syncHeight"`
 	SyncBlockHash  string `json:"syncBlockHash"`
 	ReorgsDetected []int  `json:"reorgsDetected"`
-	AllUtxoCount   uint64
-	AddressCount   uint64
-	UtxoCount      uint64
-	TotalSats      int64
 }
 
 type IrregularSubsidy struct {
