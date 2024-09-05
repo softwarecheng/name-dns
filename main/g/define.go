@@ -4,9 +4,7 @@ import (
 	"os"
 
 	"github.com/OLProtocol/ordx/indexer"
-	"github.com/OLProtocol/ordx/server"
 )
-
 
 var (
 	SigInt         chan os.Signal
@@ -14,6 +12,5 @@ var (
 )
 
 var (
-	Rpc           *server.Rpc
-	IndexerMgr    *indexer.IndexerMgr
+	IndexerMgr *indexer.IndexerMgr
 )

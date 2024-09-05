@@ -10,23 +10,14 @@ const NS_DB_VERSION_KEY = "nsdbver"
 const NS_STATUS_KEY = "nsstatus"
 
 const (
-	DB_PREFIX_NAME     = "r-" // name  NameRegister
-	DB_PREFIX_KV       = "k-" // key-value  KeyValueInDB
-	DB_PREFIX_BUCK     = "bk-"
+	DB_PREFIX_NAME = "r-" // name  NameRegister
+	DB_PREFIX_KV   = "k-" // key-value  KeyValueInDB
+	DB_PREFIX_BUCK = "bk-"
 )
 
 type KeyValue struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
-}
-
-type NameUpdate struct {
-	InscriptionId string `json:"inscriptionId"`
-	BlockHeight   int    `json:"height"`
-
-	Sat  int64       `json:"sat"`
-	Name string      `json:"name"`
-	KVs  []*KeyValue `json:"kvs"`
 }
 
 type TransferAction struct {
@@ -40,14 +31,12 @@ type NameValueInDB = pb.NameValueInDB
 
 // 由nft维持实时状态
 type NameRegister struct {
-	Nft *common.Nft
-	Id   int64
+	Nft  *common.Nft
 	Name string
 }
 
 type NameProperties struct {
 	NameRegister
-	KVs map[string]*common.KeyValueInDB // key->value
 }
 
 // 一个聪只能绑定一个名字。再次绑定会报错。

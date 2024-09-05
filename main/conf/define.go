@@ -25,7 +25,6 @@ type YamlConf struct {
 	ShareRPC   ShareRPC   `yaml:"share_rpc"`
 	Log        Log        `yaml:"log"`
 	BasicIndex BasicIndex `yaml:"basic_index"`
-	RPCService any        `yaml:"rpc_service"`
 }
 
 type DB struct {

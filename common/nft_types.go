@@ -11,18 +11,11 @@ type Nft struct {
 	UtxoId         uint64
 }
 
-type NftStatus struct {
-	Version string
-	Count   uint64
-	Unbound uint64
-}
-
 type NftsInSat = pb.NftsInSat
 
 const ALL_TICKERS = "*"
 
 type TickerName struct {
 	TypeName string
-	Name string   // * 所有ticker
+	Name     string // * 所有ticker
 }
-

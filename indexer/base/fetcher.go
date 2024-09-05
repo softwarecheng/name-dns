@@ -8,7 +8,6 @@ import (
 	"github.com/btcsuite/btcd/txscript"
 )
 
-// 不要panic，可能会影响写数据库
 func (b *BaseIndexer) fetchBlock(height int) *common.Block {
 	hash, err := getBlockHash(uint64(height))
 	if err != nil {

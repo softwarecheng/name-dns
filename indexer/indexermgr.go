@@ -7,8 +7,6 @@ import (
 	"github.com/OLProtocol/ordx/common"
 	base_indexer "github.com/OLProtocol/ordx/indexer/base"
 
-	"github.com/OLProtocol/ordx/indexer/ft"
-	"github.com/OLProtocol/ordx/indexer/nft"
 	"github.com/OLProtocol/ordx/indexer/ns"
 
 	"github.com/btcsuite/btcd/chaincfg"
@@ -19,22 +17,17 @@ import (
 type IndexerMgr struct {
 	dbDir string
 	// data from blockchain
-	baseDB *badger.DB
-	ftDB   *badger.DB
-	nsDB   *badger.DB
-	nftDB  *badger.DB
+
+	nsDB *badger.DB
+
 	// data from market
 
 	// 配置参数
 	chaincfgParam   *chaincfg.Params
 	ordxFirstHeight int
 	ordFirstHeight  int
-	maxIndexHeight  int
 
-	ftIndexer *ft.FTIndexer
-	ns        *ns.NameService
-	nft       *nft.NftIndexer
-	clmap     map[common.TickerName]map[string]int64 // collections map, ticker -> inscriptionId -> asset amount
+	ns *ns.NameService
 
 	mutex sync.RWMutex
 	// 跑数据
@@ -43,9 +36,8 @@ type IndexerMgr struct {
 	// 备份所有需要写入数据库的数据
 	compilingBackupDB *base_indexer.BaseIndexer
 
-	ordxBackupDB *ft.FTIndexer
-	nsBackupDB   *ns.NameService
-	nftBackupDB  *nft.NftIndexer
+	nsBackupDB *ns.NameService
+
 	// 接收前端api访问的实例，隔离内存访问
 	rpcService *base_indexer.RpcIndexer
 
@@ -59,7 +51,7 @@ var instance *IndexerMgr
 func NewIndexerMgr(
 	dbDir string,
 	chaincfgParam *chaincfg.Params,
-	maxIndexHeight int,
+
 ) *IndexerMgr {
 
 	if instance != nil {
@@ -69,10 +61,8 @@ func NewIndexerMgr(
 	mgr := &IndexerMgr{
 		dbDir:             dbDir,
 		chaincfgParam:     chaincfgParam,
-		maxIndexHeight:    maxIndexHeight,
 		compilingBackupDB: nil,
 		nsBackupDB:        nil,
-		nftBackupDB:       nil,
 		rpcService:        nil,
 	}
 
@@ -97,36 +87,18 @@ func (b *IndexerMgr) Init() {
 	if err != nil {
 		common.Log.Panicf("initDB failed. %v", err)
 	}
-	b.compiling = base_indexer.NewBaseIndexer(b.baseDB, b.chaincfgParam, b.maxIndexHeight)
+	b.compiling = base_indexer.NewBaseIndexer(b.nsDB, b.chaincfgParam)
 	b.compiling.Init(b.processOrdProtocol, b.forceUpdateDB)
 	b.lastCheckHeight = b.compiling.GetSyncHeight()
 
-	dbver := b.GetBaseDBVer()
-	common.Log.Infof("base db version: %s", dbver)
-	if dbver != "" && dbver != base_indexer.BASE_DB_VERSION {
-		common.Log.Panicf("DB version inconsistent. DB ver %s, but code base %s", dbver, base_indexer.BASE_DB_VERSION)
-	}
-
-	b.nft = nft.NewNftIndexer(b.nftDB)
-	b.nft.Init(b.compiling)
-	b.ftIndexer = ft.NewOrdxIndexer(b.ftDB)
-	b.ftIndexer.InitOrdxIndexer(b.nft)
 	b.ns = ns.NewNameService(b.nsDB)
-	b.ns.Init(b.nft)
+	b.ns.Init()
 
 	b.rpcService = base_indexer.NewRpcIndexer(b.compiling)
-
 	b.compilingBackupDB = nil
-
 	b.nsBackupDB = nil
-	b.nftBackupDB = nil
-
 	b.addressToNftMap = nil
 	b.addressToNameMap = nil
-}
-
-func (b *IndexerMgr) GetBaseDB() *badger.DB {
-	return b.baseDB
 }
 
 func (b *IndexerMgr) WithPeriodFlushToDB(value int) *IndexerMgr {
@@ -157,15 +129,7 @@ func (b *IndexerMgr) StartDaemon(stopChan chan bool) {
 			go func() {
 				ret := b.compiling.SyncToChainTip(stopIndexerChan)
 				if ret == 0 {
-					if b.maxIndexHeight > 0 {
-						if b.maxIndexHeight <= b.compiling.GetHeight() {
-							b.checkSelf()
-							common.Log.Infof("reach expected height, set exit flag")
-							bWantExit = true
-						}
-					} else {
-						b.updateDB()
-					}
+					b.updateDB()
 				} else if ret > 0 {
 					// handle reorg
 					b.handleReorg(ret)
@@ -217,36 +181,13 @@ func (b *IndexerMgr) StartDaemon(stopChan chan bool) {
 }
 
 func (b *IndexerMgr) closeDB() {
-
-	common.RunBadgerGC(b.baseDB)
-	common.RunBadgerGC(b.nftDB)
 	common.RunBadgerGC(b.nsDB)
-	common.RunBadgerGC(b.ftDB)
-
-	b.ftDB.Close()
 	b.nsDB.Close()
-	b.nftDB.Close()
-	b.baseDB.Close()
-
-}
-
-func (b *IndexerMgr) checkSelf() {
-	start := time.Now()
-	b.compiling.CheckSelf()
-
-	b.nft.CheckSelf(b.baseDB)
-	b.ftIndexer.CheckSelf(b.compiling.GetSyncHeight())
-	b.ns.CheckSelf(b.baseDB)
-	common.Log.Infof("IndexerMgr.checkSelf takes %v", time.Since(start))
 }
 
 func (b *IndexerMgr) forceUpdateDB() {
 	startTime := time.Now()
-
-	b.nft.UpdateDB()
 	b.ns.UpdateDB()
-	b.ftIndexer.UpdateDB()
-
 	common.Log.Infof("IndexerMgr.forceUpdateDB: takes: %v", time.Since(startTime))
 }
 
@@ -301,28 +242,18 @@ func (b *IndexerMgr) updateDB() {
 func (b *IndexerMgr) performUpdateDBInBuffer() {
 	b.cleanDBBuffer() // must before UpdateDB
 	b.compilingBackupDB.UpdateDB()
-
-	b.nftBackupDB.UpdateDB()
 	b.nsBackupDB.UpdateDB()
-	b.ordxBackupDB.UpdateDB()
+
 }
 
 func (b *IndexerMgr) prepareDBBuffer() {
 	b.compilingBackupDB = b.compiling.Clone()
-	b.compiling.ResetBlockVector()
-
-	b.ordxBackupDB = b.ftIndexer.Clone()
 	b.nsBackupDB = b.ns.Clone()
-	b.nftBackupDB = b.nft.Clone()
 	common.Log.Infof("backup instance %d cloned", b.compilingBackupDB.GetHeight())
 }
 
 func (b *IndexerMgr) cleanDBBuffer() {
-	b.compiling.Subtract(b.compilingBackupDB)
-
-	b.ftIndexer.Subtract(b.ordxBackupDB)
 	b.ns.Subtract(b.nsBackupDB)
-	b.nft.Subtract(b.nftBackupDB)
 }
 
 func (b *IndexerMgr) updateServiceInstance() {
@@ -333,7 +264,6 @@ func (b *IndexerMgr) updateServiceInstance() {
 	newService := base_indexer.NewRpcIndexer(b.compiling)
 	common.Log.Infof("service instance %d cloned", newService.GetHeight())
 
-	newService.UpdateServiceInstance()
 	b.mutex.Lock()
 	b.rpcService = newService
 	b.addressToNftMap = nil

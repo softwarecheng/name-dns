@@ -10,7 +10,6 @@ import (
 
 type Range = pb.MyRange
 
-
 type Input struct {
 	Txid     string `json:"txid"`
 	UtxoId   uint64
@@ -21,8 +20,8 @@ type Input struct {
 }
 
 type ScriptPubKey struct {
-	Addresses []string `json:"addresses"`
-	Type      txscript.ScriptClass   `json:"type"`
+	Addresses []string             `json:"addresses"`
+	Type      txscript.ScriptClass `json:"type"`
 }
 
 type Output struct {
@@ -46,8 +45,4 @@ type Block struct {
 	Hash          string         `json:"hash"`
 	PrevBlockHash string         `json:"prevBlockHash"`
 	Transactions  []*Transaction `json:"transactions"`
-}
-
-type UTXOIndex struct {
-	Index map[string]*Output
 }

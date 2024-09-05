@@ -8,7 +8,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/OLProtocol/ordx/main/conf"
-	serverCommon "github.com/OLProtocol/ordx/server/define"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -55,20 +55,6 @@ func LoadYamlConf(cfgPath string) (*conf.YamlConf, error) {
 		ret.DB.Path += string(filepath.Separator)
 	}
 
-	rpcService, err := serverCommon.ParseRpcService(ret.RPCService)
-	if err != nil {
-		return nil, err
-	}
-	if rpcService.Addr == "" {
-		rpcService.Addr = "0.0.0.0:80"
-	}
-
-	if rpcService.LogPath == "" {
-		rpcService.LogPath = "log"
-	}
-
-	ret.RPCService = rpcService
-
 	return ret, nil
 }
 
@@ -104,9 +90,6 @@ func NewDefaultYamlConf(chain string) (*conf.YamlConf, error) {
 		BasicIndex: conf.BasicIndex{
 			MaxIndexHeight:  0,
 			PeriodFlushToDB: 100,
-		},
-		RPCService: serverCommon.RPCService{
-			Addr: "0.0.0.0:80",
 		},
 	}
 

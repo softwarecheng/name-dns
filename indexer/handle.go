@@ -37,9 +37,8 @@ func (s *IndexerMgr) processOrdProtocol(block *common.Block) {
 		}
 	}
 	//common.Log.Infof("processOrdProtocol loop %d finished. cost: %v", count, time.Since(measureStartTime))
-	s.nft.UpdateTransfer(block)
+
 	s.ns.UpdateTransfer(block)
-	s.ftIndexer.UpdateTransfer(block)
 
 	//common.Log.Infof("processOrdProtocol UpdateTransfer finished. cost: %v", time.Since(time2))
 
@@ -58,23 +57,10 @@ func (s *IndexerMgr) handleNameRegister(content *common.OrdxRegContent, nft *com
 	nft.Base.UserData = []byte(name)
 
 	s.ns.NameRegister(reg)
-
-	if len(content.KVs) > 0 {
-		update := &ns.NameUpdate{
-			InscriptionId: nft.Base.InscriptionId,
-			BlockHeight:   int(nft.Base.BlockHeight),
-			Sat:           nft.Base.Sat,
-			Name:          name,
-			KVs:           ns.ParseKVs(content.KVs),
-		}
-		s.ns.NameUpdate(update)
-	}
 }
 
 func (s *IndexerMgr) handleNameRouting(content *common.OrdxUpdateContentV2, nft *common.Nft) {
-
 	content.Name = strings.ToLower(content.Name)
-
 	reg := s.ns.GetNameRegisterInfo(content.Name)
 	if reg == nil {
 		common.Log.Warnf("IndexerMgr.handleNameRouting: %s, Name %s not exist", nft.Base.InscriptionId, content.Name)
@@ -87,20 +73,6 @@ func (s *IndexerMgr) handleNameRouting(content *common.OrdxUpdateContentV2, nft 
 		return
 	}
 
-	kvs := make([]*ns.KeyValue, 0)
-	for k, v := range content.KVs {
-		kvs = append(kvs, &ns.KeyValue{Key: k, Value: v})
-	}
-
-	update := &ns.NameUpdate{
-		InscriptionId: nft.Base.InscriptionId,
-		BlockHeight:   int(nft.Base.BlockHeight),
-		Name:          content.Name,
-		KVs:           kvs,
-	}
-	nft.Base.TypeName = common.ASSET_TYPE_NFT
-
-	s.ns.NameUpdate(update)
 }
 
 func (s *IndexerMgr) handleOrd(fields map[int][]byte) {

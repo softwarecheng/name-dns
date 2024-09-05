@@ -7,8 +7,6 @@ import (
 	"github.com/OLProtocol/ordx/share/bitcoin_rpc"
 )
 
-// 带了延时，仅用于跑数据
-
 func getBlockCount() (uint64, error) {
 	h, err := bitcoin_rpc.ShareBitconRpc.GetBlockCount()
 	if err != nil {

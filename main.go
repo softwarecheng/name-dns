@@ -29,12 +29,6 @@ func main() {
 		return
 	}
 
-	err = g.InitRpcService()
-	if err != nil {
-		common.Log.Error(err)
-		return
-	}
-
 	// blocked in this thread
 	g.RunBaseIndexer()
 

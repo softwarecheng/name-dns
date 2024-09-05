@@ -12,14 +12,10 @@ import (
 )
 
 func InitBaseIndexer() error {
-
-	maxIndexHeight := int64(0)
 	periodFlushToDB := int(0)
 	if mainCommon.YamlCfg != nil {
-		maxIndexHeight = mainCommon.YamlCfg.BasicIndex.MaxIndexHeight
 		periodFlushToDB = mainCommon.YamlCfg.BasicIndex.PeriodFlushToDB
 	} else if mainCommon.Cfg != nil {
-		maxIndexHeight = mainCommon.Cfg.MaxIndexHeight
 		periodFlushToDB = mainCommon.Cfg.PeriodFlushToDB
 	} else {
 		return fmt.Errorf("cfg is not set")
@@ -30,8 +26,6 @@ func InitBaseIndexer() error {
 	}
 	chainParam := &chaincfg.MainNetParams
 	switch chain {
-	case common.ChainTestnet:
-		chainParam = &chaincfg.TestNet3Params
 	case common.ChainTestnet4:
 		chainParam = &chaincfg.TestNet3Params
 		chainParam.Name = common.ChainTestnet4
@@ -52,7 +46,7 @@ func InitBaseIndexer() error {
 		dbDir = filepath.Clean(dbDir) + string(filepath.Separator)
 	}
 
-	IndexerMgr = indexer.NewIndexerMgr(dbDir, chainParam, int(maxIndexHeight))
+	IndexerMgr = indexer.NewIndexerMgr(dbDir, chainParam)
 	shareBaseIndexer.InitBaseIndexer(IndexerMgr)
 	IndexerMgr.Init()
 
