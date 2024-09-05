@@ -118,31 +118,3 @@ func (b *IndexerMgr) GetNftAmountWithAddress(address string) map[string]int64 {
 
 	return result
 }
-
-func (b *IndexerMgr) getNftsWithUtxo(utxoId uint64) map[string][]*common.Range {
-	result := make(map[string][]*common.Range)
-	sats := b.nft.GetBoundSatsWithUtxo(utxoId)
-	for _, sat := range sats {
-		nfts := b.nft.GetNftsWithSat(sat)
-		if nfts != nil {
-			for _, nft := range nfts.Nfts {
-				result[nft.InscriptionId] = []*common.Range{{Start: nft.Sat, Size: 1}}
-			}
-		}
-	}
-	return result
-}
-
-func (b *IndexerMgr) getNftsWithRanges(ranges []*common.Range) map[string][]*common.Range {
-	result := make(map[string][]*common.Range)
-	sats := b.nft.GetNftsWithRanges(ranges)
-	for _, sat := range sats {
-		nfts := b.nft.GetNftsWithSat(sat)
-		if nfts != nil {
-			for _, nft := range nfts.Nfts {
-				result[nft.InscriptionId] = []*common.Range{{Start: nfts.Sat, Size: 1}}
-			}
-		}
-	}
-	return result
-}
