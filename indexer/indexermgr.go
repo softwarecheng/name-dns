@@ -6,11 +6,8 @@ import (
 
 	"github.com/OLProtocol/ordx/common"
 	base_indexer "github.com/OLProtocol/ordx/indexer/base"
-
 	"github.com/OLProtocol/ordx/indexer/ns"
-
 	"github.com/btcsuite/btcd/chaincfg"
-
 	"github.com/dgraph-io/badger/v4"
 )
 

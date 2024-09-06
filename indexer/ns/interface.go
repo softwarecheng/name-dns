@@ -53,19 +53,19 @@ func (p *NameService) GetNameRegisterInfo(name string) *NameRegister {
 // 按照铸造时间
 func (p *NameService) GetNames(start, limit int) []string {
 	result := make([]string, 0)
-	buckDB := NewBuckStore(p.db)
-	end := start + limit
-	namemap := buckDB.BatchGet(start, end)
+	// buckDB := NewBuckStore(p.db)
+	// end := start + limit
+	// namemap := buckDB.BatchGet(start, end)
 	// for _, reg := range p.nameAdded {
 	// 	namemap[int(reg.Id)] = &BuckValue{Name: reg.Name, Sat: reg.Nft.Base.Sat}
 	// }
 
-	for i := start; i < end; i++ {
-		value, ok := namemap[i]
-		if ok {
-			result = append(result, value.Name)
-		}
-	}
+	// for i := start; i < end; i++ {
+	// 	value, ok := namemap[i]
+	// 	if ok {
+	// 		result = append(result, value.Name)
+	// 	}
+	// }
 
 	return result
 }
