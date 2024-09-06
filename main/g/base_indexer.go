@@ -7,7 +7,6 @@ import (
 	common "github.com/OLProtocol/ordx/common"
 	"github.com/OLProtocol/ordx/indexer"
 	mainCommon "github.com/OLProtocol/ordx/main/common"
-	shareBaseIndexer "github.com/OLProtocol/ordx/share/base_indexer"
 	"github.com/btcsuite/btcd/chaincfg"
 )
 
@@ -47,7 +46,7 @@ func InitBaseIndexer() error {
 	}
 
 	IndexerMgr = indexer.NewIndexerMgr(dbDir, chainParam)
-	shareBaseIndexer.InitBaseIndexer(IndexerMgr)
+
 	IndexerMgr.Init()
 
 	if periodFlushToDB != 0 {
