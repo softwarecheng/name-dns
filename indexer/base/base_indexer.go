@@ -30,18 +30,6 @@ func NewRpcIndexer(base *BaseIndexer) *RpcIndexer {
 	return indexer
 }
 
-type UtxoValue struct {
-	Utxo    string
-	Address *common.ScriptPubKey
-	UtxoId  uint64
-	Value   int64
-}
-
-type AddressStatus struct {
-	AddressId uint64
-	Op        int // 0 existed; 1 added
-}
-
 type BlockProcCallback func(*common.Block)
 type UpdateDBCallback func()
 
@@ -142,15 +130,6 @@ func (b *BaseIndexer) forceMajeure() {
 	common.Log.Info("Graceful shutdown received, flushing db...")
 }
 
-func (b *BaseIndexer) handleReorg(currentBlock *common.Block) {
-	common.Log.Warnf("BaseIndexer.handleReorg-> reorg detected at heigh %d", currentBlock.Height)
-
-	// clean memory and reload stats from DB
-	// b.reset()
-	//b.stats.ReorgsDetected = append(b.stats.ReorgsDetected, currentBlock.Height)
-	b.drainBlocksChan()
-}
-
 // syncToBlock continues from the sync height to the current height
 func (b *BaseIndexer) syncToBlock(height int, stopChan chan struct{}) int {
 	if b.lastHeight == height {
@@ -194,7 +173,6 @@ func (b *BaseIndexer) syncToBlock(height int, stopChan chan struct{}) int {
 			if i > 0 && block.PrevBlockHash != b.lastHash {
 				common.Log.WithField("BaseIndexer.SyncToBlock-> height", i).Warn("reorg detected")
 				stopBlockFetcherChan <- struct{}{}
-				b.handleReorg(block)
 				return block.Height
 			}
 

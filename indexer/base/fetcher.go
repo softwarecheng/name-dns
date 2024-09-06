@@ -122,13 +122,3 @@ func (b *BaseIndexer) spawnBlockFetcher(startHeigh int, endHeight int, stopChan 
 
 	<-stopChan
 }
-
-func (b *BaseIndexer) drainBlocksChan() {
-	for {
-		select {
-		case <-b.blocksChan:
-		default:
-			return
-		}
-	}
-}
