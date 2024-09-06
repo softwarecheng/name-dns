@@ -109,11 +109,6 @@ func (b *IndexerMgr) StartDaemon(stopChan chan bool) {
 
 	stopIndexerChan := make(chan struct{}, 1) // 非阻塞
 
-	if b.repair() {
-		common.Log.Infof("repaired, check again.")
-		return
-	}
-
 	bWantExit := false
 	isRunning := false
 	disableSync := false
@@ -170,8 +165,6 @@ func (b *IndexerMgr) StartDaemon(stopChan chan bool) {
 	}
 
 	ticker.Stop()
-
-	// close all
 	b.closeDB()
 
 	common.Log.Info("IndexerMgr exited.")
@@ -266,9 +259,4 @@ func (b *IndexerMgr) updateServiceInstance() {
 	b.addressToNftMap = nil
 	b.addressToNameMap = nil
 	b.mutex.Unlock()
-}
-
-func (p *IndexerMgr) repair() bool {
-	//p.compiling.Repair()
-	return false
 }

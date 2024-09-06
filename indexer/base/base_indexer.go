@@ -133,11 +133,7 @@ func (b *BaseIndexer) forceUpdateDB() {
 	startTime := time.Now()
 	b.UpdateDB()
 	common.Log.Infof("BaseIndexer.updateBasicDB: cost: %v", time.Since(startTime))
-
-	// startTime = time.Now()
 	b.updateDBCB()
-	// common.Log.Infof("BaseIndexer.updateOrdxDB: cost: %v", time.Since(startTime))
-
 	common.Log.Infof("forceUpdateDB sync to height %d", b.stats.SyncHeight)
 }
 
@@ -169,7 +165,6 @@ func (b *BaseIndexer) UpdateDB() {
 
 func (b *BaseIndexer) forceMajeure() {
 	common.Log.Info("Graceful shutdown received, flushing db...")
-	b.closeDB()
 }
 
 func (b *BaseIndexer) handleReorg(currentBlock *common.Block) {
