@@ -65,31 +65,6 @@ func LoadConf(cfgPath string) (*Conf, error) {
 		dbDir += string(filepath.Separator)
 	}
 
-	rpcAddr := conf["RPC_ADDR"]
-	if rpcAddr == "" {
-		rpcAddr = "0.0.0.0:8004"
-	}
-
-	rpcProxy := conf["RPC_PROXY"]
-	if rpcProxy == "" {
-		rpcProxy = "/"
-	}
-	if rpcProxy[0] != '/' {
-		rpcProxy = "/" + rpcProxy
-	}
-
-	rpcLogPath := conf["RPC_LOG_PATH"]
-
-	swaggerHost := conf["SWAGGER_HOST"]
-	if swaggerHost == "" {
-		swaggerHost = "127.0.0.1"
-	}
-
-	swaggerSchemes := conf["SWAGGER_SCHEMES"]
-	if swaggerSchemes == "" {
-		swaggerSchemes = "http"
-	}
-
 	return &Conf{
 		BitCoinChain:    conf["BITCOIN_CHAIN"],
 		BitcoinRPCUser:  conf["BITCOIN_RPC_USER"],
@@ -101,7 +76,5 @@ func LoadConf(cfgPath string) (*Conf, error) {
 		LogPath:         logPath,
 		PeriodFlushToDB: periodFlushToDB,
 		MaxIndexHeight:  maxIndexHeight,
-		RpcAddr:         rpcAddr,
-		RpcLogPath:      rpcLogPath,
 	}, nil
 }

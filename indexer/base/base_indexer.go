@@ -105,24 +105,6 @@ func (b *BaseIndexer) Clone() *BaseIndexer {
 	return newInst
 }
 
-func needMerge(rngs []*common.Range) bool {
-	len1 := len(rngs)
-	if len1 < 2 {
-		return false
-	}
-
-	r1 := rngs[0]
-	for i := 1; i < len1; i++ {
-		r2 := rngs[i]
-		if r1.Start+r1.Size == r2.Start {
-			return true
-		}
-		r1 = r2
-	}
-
-	return false
-}
-
 func (b *BaseIndexer) WithPeriodFlushToDB(value int) *BaseIndexer {
 	b.periodFlushToDB = value
 	return b
@@ -135,13 +117,6 @@ func (b *BaseIndexer) forceUpdateDB() {
 	common.Log.Infof("BaseIndexer.updateBasicDB: cost: %v", time.Since(startTime))
 	b.updateDBCB()
 	common.Log.Infof("forceUpdateDB sync to height %d", b.stats.SyncHeight)
-}
-
-func (b *BaseIndexer) closeDB() {
-	err := b.db.Close()
-	if err != nil {
-		common.Log.Errorf("BaseIndexer.closeDB-> Error closing sat db %v", err)
-	}
 }
 
 func (b *BaseIndexer) UpdateDB() {

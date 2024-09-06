@@ -11,12 +11,12 @@ import (
 type Range = pb.MyRange
 
 type Input struct {
-	Txid     string `json:"txid"`
-	UtxoId   uint64
-	Address  *ScriptPubKey  `json:"scriptPubKey"`
-	Vout     int64          `json:"vout"`
-	Ordinals []*Range       `json:"ordinals"`
-	Witness  wire.TxWitness `json:"witness"`
+	Txid    string `json:"txid"`
+	UtxoId  uint64
+	Address *ScriptPubKey `json:"scriptPubKey"`
+	Vout    int64         `json:"vout"`
+
+	Witness wire.TxWitness `json:"witness"`
 }
 
 type ScriptPubKey struct {
@@ -25,12 +25,11 @@ type ScriptPubKey struct {
 }
 
 type Output struct {
-	Height   int           `json:"height"`
-	TxId     int           `json:"txid"`
-	Value    int64         `json:"value"`
-	Address  *ScriptPubKey `json:"scriptPubKey"`
-	N        int64         `json:"n"`
-	Ordinals []*Range      `json:"ordinals"`
+	Height  int           `json:"height"`
+	TxId    int           `json:"txid"`
+	Value   int64         `json:"value"`
+	Address *ScriptPubKey `json:"scriptPubKey"`
+	N       int64         `json:"n"`
 }
 
 type Transaction struct {

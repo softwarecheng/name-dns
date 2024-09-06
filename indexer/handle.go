@@ -15,7 +15,6 @@ func (s *IndexerMgr) processOrdProtocol(block *common.Block) {
 
 	detectOrdMap := make(map[string]int, 0)
 	measureStartTime := time.Now()
-	//common.Log.Info("processOrdProtocol ...")
 	count := 0
 	for _, tx := range block.Transactions {
 		id := 0
@@ -36,12 +35,6 @@ func (s *IndexerMgr) processOrdProtocol(block *common.Block) {
 			detectOrdMap[tx.Txid] = id
 		}
 	}
-	//common.Log.Infof("processOrdProtocol loop %d finished. cost: %v", count, time.Since(measureStartTime))
-
-	s.ns.UpdateTransfer(block)
-
-	//common.Log.Infof("processOrdProtocol UpdateTransfer finished. cost: %v", time.Since(time2))
-
 	common.Log.Infof("processOrdProtocol %d,is done: cost: %v", block.Height, time.Since(measureStartTime))
 }
 
@@ -67,11 +60,12 @@ func (s *IndexerMgr) handleNameRouting(content *common.OrdxUpdateContentV2, nft 
 		return
 	}
 
+	// TODO
 	// 只需要当前owner持有该nft就可以修改，而不必在sat上继续铸造
-	if nft.OwnerAddressId != reg.Nft.OwnerAddressId {
-		common.Log.Warnf("IndexerMgr.handleNameRouting: %s, Name %s has different owner", nft.Base.InscriptionId, content.Name)
-		return
-	}
+	// if nft.OwnerAddressId != reg.Nft.OwnerAddressId {
+	// 	common.Log.Warnf("IndexerMgr.handleNameRouting: %s, Name %s has different owner", nft.Base.InscriptionId, content.Name)
+	// 	return
+	// }
 
 }
 

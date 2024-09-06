@@ -13,12 +13,7 @@ import (
 
 type IndexerMgr struct {
 	dbDir string
-	// data from blockchain
-
-	nsDB *badger.DB
-
-	// data from market
-
+	nsDB  *badger.DB
 	// 配置参数
 	chaincfgParam   *chaincfg.Params
 	ordxFirstHeight int

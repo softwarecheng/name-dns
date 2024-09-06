@@ -61,11 +61,6 @@ func (p *NameService) NameRegister(reg *NameRegister) {
 	p.nameAdded = append(p.nameAdded, reg)
 }
 
-// 使用utxoMap，效率高很多
-func (p *NameService) UpdateTransfer(block *common.Block) {
-
-}
-
 func (p *NameService) getNameInBuffer(name string) *NameRegister {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()

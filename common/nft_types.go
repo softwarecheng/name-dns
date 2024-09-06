@@ -6,16 +6,7 @@ import (
 
 type InscribeBaseContent = pb.InscribeBaseContent
 type Nft struct {
-	Base           *InscribeBaseContent
-	OwnerAddressId uint64
-	UtxoId         uint64
+	Base *InscribeBaseContent
 }
 
 type NftsInSat = pb.NftsInSat
-
-const ALL_TICKERS = "*"
-
-type TickerName struct {
-	TypeName string
-	Name     string // * 所有ticker
-}

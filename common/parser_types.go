@@ -24,18 +24,6 @@ type OrdxBaseContent struct {
 	Op string `json:"op,omitempty"`
 }
 
-type OrdxDeployContent struct {
-	OrdxBaseContent
-	Ticker   string `json:"tick,omitempty"`
-	Type     string `json:"type,omitempty"`
-	Lim      string `json:"lim,omitempty"`
-	Max      string `json:"max,omitempty"`
-	SelfMint string `json:"selfmint,omitempty"`
-	Block    string `json:"block,omitempty"`
-	Attr     string `json:"attr,omitempty"`
-	Des      string `json:"des,omitempty"`
-}
-
 type Brc20BaseContent struct {
 	OrdxBaseContent
 	Ticker string `json:"tick,omitempty"`
@@ -45,14 +33,6 @@ type PrimaryNameBaseContent struct {
 	OrdxBaseContent
 	Name   string `json:"name"`
 	Avatar string `json:"avatar,omitempty"`
-}
-
-type OrdxMintContent struct {
-	OrdxBaseContent
-	Ticker string `json:"tick,omitempty"`
-	Amt    string `json:"amt,omitempty"`
-	Sat    string `json:"sat,omitempty"`
-	Des    string `json:"des,omitempty"`
 }
 
 type OrdxRegContent struct {
@@ -68,8 +48,8 @@ type OrdxUpdateContentV1 struct {
 }
 
 type OrdxUpdateContentV2 struct {
-	P  string      
-    Op string     
-	Name  string   
-	KVs   map[string]string
+	P    string
+	Op   string
+	Name string
+	KVs  map[string]string
 }

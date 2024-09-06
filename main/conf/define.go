@@ -15,8 +15,6 @@ type Conf struct {
 	LogPath         string
 	PeriodFlushToDB int
 	MaxIndexHeight  int64
-	RpcAddr         string
-	RpcLogPath      string
 }
 
 type YamlConf struct {

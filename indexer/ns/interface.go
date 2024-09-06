@@ -6,21 +6,6 @@ import (
 	"github.com/dgraph-io/badger/v4"
 )
 
-func (p *NameService) IsNameExist(name string) bool {
-	name = strings.ToLower(name)
-	reg := p.getNameInBuffer(name)
-	if reg != nil {
-		return true
-	}
-
-	value := NameValueInDB{}
-	err := p.db.View(func(txn *badger.Txn) error {
-		return loadNameFromDB(name, &value, txn)
-	})
-
-	return err == nil
-}
-
 func (p *NameService) GetNameRegisterInfo(name string) *NameRegister {
 	name = strings.ToLower(name)
 	reg := p.getNameInBuffer(name)

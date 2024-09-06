@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/btcsuite/btcd/txscript"
@@ -311,40 +310,6 @@ func ParseInscription(txWitness [][]byte) ([]map[int][]byte, error) {
 	return result, nil
 }
 
-func GetBasicContent(content string) *OrdxBaseContent {
-	var ordxContent OrdxBaseContent
-	err := json.Unmarshal([]byte(content), &ordxContent)
-	if err != nil {
-		return nil
-	}
-
-	return &ordxContent
-}
-
-func ParseDeployContent(content string) *OrdxDeployContent {
-	var ret OrdxDeployContent
-	err := json.Unmarshal([]byte(content), &ret)
-	if err != nil {
-		Log.Warnf("invalid json: %s, %v", content, err)
-		return nil
-	}
-	ret.Ticker = PreprocessName(ret.Ticker)
-	// if strings.Contains(ret.Ticker, " ") {
-	// 	Log.Warnf("invalid ticker name: %s", ret.Ticker)
-	// 	return nil
-	// }
-	return &ret
-}
-
-func ParseMintContent(content string) *OrdxMintContent {
-	var ret OrdxMintContent
-	err := json.Unmarshal([]byte(content), &ret)
-	if err != nil {
-		return nil
-	}
-	return &ret
-}
-
 func ParseBrc20Content(content string) *Brc20BaseContent {
 	var ret Brc20BaseContent
 	err := json.Unmarshal([]byte(content), &ret)
@@ -389,49 +354,6 @@ func Json2cbor(jsonData []byte) ([]byte, error) {
 	return (cborData), nil
 }
 
-func GetSatpoint(spBytes []byte) int {
-	// ab28fc85219361cd62d1302048e160d7632903b1bde4c6158c005f05ea46bd02
-	l := len(spBytes)
-	if l == 2 {
-		return int(binary.LittleEndian.Uint16(spBytes))
-	} else if l == 4 {
-		return int(binary.LittleEndian.Uint32(spBytes))
-	} else if l == 1 {
-		return int(spBytes[0])
-	} else if l == 3 {
-		// cc bb aa -> 0xaabbcc
-		// 4988a700aec5d1c14d7a55f96d97cea2afdff11d8e284d0bb388514e6a3d2958
-		return int(spBytes[2])<<16 + int(spBytes[1])<<8 + int(spBytes[0])
-	} else {
-		return 0
-	}
-}
-
-func IsOrdXProtocol(fields map[int][]byte) (string, bool) {
-	var content string
-
-	content = string((fields)[FIELD_CONTENT])
-	protocol, ok := (fields)[FIELD_META_PROTOCOL]
-	if ok {
-		if string(protocol) == PROTOCOL_NAME {
-			jsonStr, err := Cbor2json((fields)[FIELD_META_DATA])
-			if err != nil {
-				return content, false
-			} else {
-				content = string(jsonStr)
-			}
-		}
-	}
-
-	var ordxContent OrdxBaseContent
-	err := json.Unmarshal([]byte(content), &ordxContent)
-	if err != nil {
-		return content, false
-	}
-
-	return content, ordxContent.P == PROTOCOL_NAME
-}
-
 func GetProtocol(fields map[int][]byte) (string, []byte) {
 	content := (fields)[FIELD_CONTENT]
 	protocol, ok := (fields)[FIELD_META_PROTOCOL]
@@ -450,46 +372,6 @@ func GetProtocol(fields map[int][]byte) (string, []byte) {
 	}
 
 	return ordxContent.P, content
-}
-
-func ParseInscriptionId(input []byte) string {
-	/*
-		010320b5cbc7526bf2619bc912e7584bb47d414e3f3bd2e209bfbc1edb162b5ddfb2fd
-			OP_PUSHBYTES_1 03
-			OP_PUSHBYTES_32 b5cbc7526bf2619bc912e7584bb47d414e3f3bd2e209bfbc1edb162b5ddfb2fd
-		010b20a072a699867de6b7a87956d6d36d926d91d47a39e6e08bb7b848899135bf76ed
-			OP_PUSHBYTES_1 0b
-			OP_PUSHBYTES_32 a072a699867de6b7a87956d6d36d926d91d47a39e6e08bb7b848899135bf76ed
-			实际的值：
-			03-parent: fdb2df5d2b16db1ebcbf09e2d23b3f4e417db44b58e712c99b61f26b52c7cbb5i0
-			0b-delegate：ed76bf35918948b8b78be0e6397ad4916d926dd3d65679a8b7e67d8699a672a0i0
-			需要做转换: serialized as the 32-byte TXID, followed by the four-byte little-endian INDEX,
-			with trailing zeroes omitted.
-			0 被忽略
-	*/
-
-	if input == nil || len(input) < 32 {
-		return ""
-	}
-
-	// Reverse the byte slice
-	reverseBytes := make([]byte, 32)
-	for i := 0; i < 32; i++ {
-		reverseBytes[i] = input[32-1-i]
-	}
-
-	// Convert reversed bytes to hex string
-	txid := hex.EncodeToString(reverseBytes)
-	index := 0
-	if len(input) > 32 {
-		indexBytes := make([]byte, 4)
-		for i := 0; i+32 < len(input) && i < 4; i++ {
-			indexBytes[i] = input[32+i]
-		}
-		index = int(binary.LittleEndian.Uint32(indexBytes))
-	}
-
-	return txid + "i" + strconv.Itoa(index)
 }
 
 func IsValidName(name string) bool {
@@ -527,24 +409,4 @@ func IsValidSNSName(name string) bool {
 		bReg = IsValidName(parts[0]) && IsValidName(parts[1])
 	}
 	return bReg
-}
-
-func CloneBaseContent(base *InscribeBaseContent) *InscribeBaseContent {
-	return &InscribeBaseContent{
-		InscriptionId:      base.InscriptionId,
-		InscriptionAddress: base.InscriptionAddress,
-		BlockHeight:        base.BlockHeight,
-		BlockTime:          base.BlockTime,
-		ContentType:        base.ContentType,
-		ContentEncoding:    base.ContentEncoding,
-		Content:            base.Content,
-		MetaProtocol:       base.MetaProtocol,
-		MetaData:           base.MetaData,
-		Parent:             base.Parent,
-		Delegate:           base.Delegate,
-		Id:                 base.Id,
-		Sat:                base.Sat,
-		TypeName:           base.TypeName,
-		UserData:           base.UserData,
-	}
 }
